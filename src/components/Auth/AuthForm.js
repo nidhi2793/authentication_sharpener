@@ -1,10 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useContext } from "react";
 
 import classes from "./AuthForm.module.css";
+import AuthContext from "../../store/Auth-Context";
 
 const AuthForm = () => {
   const emailRef = useRef();
   const passwordRef = useRef();
+
+  const authCntxt = useContext(AuthContext);
 
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,31 +24,48 @@ const AuthForm = () => {
     setIsLoading(true);
     setError(null);
 
+    let url;
+
     if (isLogin) {
+      url =
+        "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyDsDBhlL65XQvkTXBbRM2IAOooK1c15K4Y";
     } else {
-      fetch(
-        "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDsDBhlL65XQvkTXBbRM2IAOooK1c15K4Y",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            email: enteredEmail,
-            password: enteredPassword,
-            returnSecureToken: true,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      ).then((res) => {
+      url =
+        "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDsDBhlL65XQvkTXBbRM2IAOooK1c15K4Y";
+    }
+
+    fetch(url, {
+      method: "POST",
+      body: JSON.stringify({
+        email: enteredEmail,
+        password: enteredPassword,
+        returnSecureToken: true,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => {
+        setIsLoading(false);
         if (res.ok) {
+          return res.json();
         } else {
           return res.json().then((data) => {
-            console.log(data);
-            setIsLoading(false);
+            let errorMessage = "Authentication Failed";
+
+            throw new Error(errorMessage);
           });
         }
+      })
+      .then((data) => {
+        authCntxt.login(data.idToken);
+      })
+      .catch((err) => {
+        alert(err.message);
       });
-    }
+
+    emailRef.current.value = "";
+    passwordRef.current.value = "";
   };
 
   return (
